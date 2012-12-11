@@ -153,6 +153,7 @@ void draw()
   // Send to arduino
   ardSerial.write(myDataOut & 255);
   ardSerial.write( (myDataOut >> 8) & 255);
+  print(myDataOut);
 }
 
 void segmentOn(int i) {
