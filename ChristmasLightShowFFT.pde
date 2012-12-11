@@ -36,6 +36,8 @@ void setup()
 {
   size(512, 400);
   
+  frameRate(10); // Slow it down some
+  
   println(Serial.list());
   if(Serial.list().length > 1) {
     ardSerial = new Serial(this, Serial.list()[1], 9600);
@@ -153,7 +155,6 @@ void draw()
   // Send to arduino
   ardSerial.write(myDataOut & 255);
   ardSerial.write( (myDataOut >> 8) & 255);
-  print(myDataOut);
 }
 
 void segmentOn(int i) {
