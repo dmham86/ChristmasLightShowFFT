@@ -12,20 +12,23 @@
 import ddf.minim.analysis.*;
 import ddf.minim.*;
 import ddf.minim.effects.*;
+import processing.serial.*;
 
-int BUF_SIZE = 24;
+int BUF_SIZE = 8;
 
 Minim minim;
 AudioPlayer sound;
 
 BandPass bpf;
 FFT fft;
+Serial ardSerial;
 
 boolean[][] buff = new boolean[16][BUF_SIZE];
 float[] MaxValues = new float[16];
 float[] MinValues = new float[16];
 int[] x_loc = new int[16];
 int[] y_loc = new int[16];
+int myDataOut = 0;
 
 int spectrumScale = 4; // pixels per FFT bin
 
@@ -33,10 +36,19 @@ void setup()
 {
   size(512, 400);
   
+  println(Serial.list());
+  if(Serial.list().length > 1) {
+    ardSerial = new Serial(this, Serial.list()[1], 9600);
+    println("Connected to Arduino");
+  }
+  else {
+    ardSerial = new Serial(this, Serial.list()[0], 9600);
+  }
+  
   minim = new Minim(this);
   minim.debugOff();
   
-  sound = minim.loadFile("ABR_Jingle_Bells.mp3");
+  sound = minim.loadFile("sound.mp3");
   // make it repeat
   sound.loop();
 
@@ -125,21 +137,27 @@ void draw()
     if( (val > MinValues[i]) ) {
       if( flicker > BUF_SIZE/8) { // Turn on only if there are a couple in the buffer
         // reduces false positives and flicker
-        MinValues[i] *= 1.8;
-        rect(x_loc[i], y_loc[i], width/5, -height/4);
+        MinValues[i] *= 1.1 + .05*(16-i);
+        segmentOn(i);
       }
       buff[i][BUF_SIZE-1] = true;
     }
     else {
       if( flicker > 1 ) {
-       rect(x_loc[i], y_loc[i], width/5, -height/4);
+       segmentOn(i);
       }
       if(MinValues[i] > 40.0)
-        MinValues[i] *=.95;
+        MinValues[i] *=.9;
     }
-
   }
+  // Send to arduino
+  ardSerial.write(myDataOut & 255);
+  ardSerial.write( (myDataOut >> 8) & 255);
+}
 
+void segmentOn(int i) {
+  rect(x_loc[i], y_loc[i], width/5, -height/4);
+  myDataOut = myDataOut | 1<<i;
 }
 
 void keyReleased()
@@ -150,6 +168,7 @@ void stop()
 {
   // always close Minim audio classes when you are done with them
   sound.close();
+  ardSerial.stop();
 
   minim.stop();
 
